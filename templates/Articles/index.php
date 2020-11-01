@@ -18,7 +18,6 @@
                     ['confirm' => 'Are you sure?']
                 )?>
             </td>
-            r
         </tr>
     <?php endforeach; ?>
 </table>
