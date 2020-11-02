@@ -17,6 +17,8 @@ class ArticlesController extends AppController
 
     public function index()
     {
+        $this->Authorization->skipAuthorization();
+
         $this->loadComponent('Paginator');
         $articles = $this->Paginator->paginate($this->Articles->find());
         $this->set(compact('articles'));
@@ -24,6 +26,8 @@ class ArticlesController extends AppController
 
     public function view($slug)
     {
+        $this->Authorization->skipAuthorization();
+
         $article = $this->Articles->findBySlug($slug)->contain('Tags')->firstOrFail();
         $this->set(compact('article'));
     }
@@ -31,11 +35,12 @@ class ArticlesController extends AppController
     public function add()
     {
         $article = $this->Articles->newEmptyEntity();
+        $this->Authorization->authorize($article);
 
         if ($this->request->is('post')) {
             $article = $this->Articles->patchEntity($article, $this->request->getData());
 
-            $article->user_id = 1;
+            $article->user_id = $this->request->getAttribute('identity')->getIdentifier();
 
             if ($this->Articles->save($article)) {
                 $this->Flash->success(__('Your article has been saved'));
@@ -53,9 +58,12 @@ class ArticlesController extends AppController
     public function edit($slug)
     {
         $article = $this->Articles->findBySlug($slug)->contain('Tags')->firstOrFail();
+        $this->Authorization->authorize($article);
 
         if ($this->request->is(['post', 'put'])) {
-            $this->Articles->patchEntity($article, $this->request->getData());
+            $this->Articles->patchEntity($article, $this->request->getData(), [
+                'accessibleFields' => ['user_id' => false]
+            ]);
             if ($this->Articles->save($article)) {
                 $this->Flash->success(__('Your article has been updated'));
                 return $this->redirect(['action' => 'index']);
@@ -73,6 +81,8 @@ class ArticlesController extends AppController
         $this->request->allowMethod(['post', 'delete']);
 
         $article = $this->Articles->findBySlug($slug)->firstOrFail();
+        $this->Authorization->authorize($article);
+
         if ($this->Articles->delete($article)) {
             $this->Flash->success(__('The {0} article has been deleted.', $article->title));
             return $this->redirect(['action' => 'index']);
@@ -82,6 +92,7 @@ class ArticlesController extends AppController
     public function tags(...$tags)
     {
 //        $tags = $this->request->getParam('pass');
+        $this->Authorization->skipAuthorization();
 
         $articles = $this->Articles->find('tagged', [
             'tags' => $tags
